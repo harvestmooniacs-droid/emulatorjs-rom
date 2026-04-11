@@ -1,28 +1,73 @@
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Emulador NDS</title>
     <style>
-        body { margin: 0; padding: 0; background: #000; }
-        #game { width: 100vw; height: 100vh; }
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background: #000; 
+            overflow: hidden;
+        }
+        #game { 
+            width: 100vw; 
+            height: 100vh; 
+        }
+        
+        /* Desativa pointer-events no canvas do emulador quando mouse não está pressionado */
+        #game canvas {
+            pointer-events: none !important;
+        }
+        
+        /* Quando o mouse está sobre o canvas com botão pressionado, permite interação */
+        #game canvas:active {
+            pointer-events: auto !important;
+        }
     </style>
 </head>
 <body>
     <div id="game"></div>
     <script>
         EJS_player = "#game";
-        EJS_core = "nds";  // Núcleo mais leve e sem dependência de melonds-wasm.data
+        EJS_core = "desmume";
         EJS_gameName = "Puzzle de Harvest Moon";
         EJS_color = "#55aa76";
         EJS_startOnLoaded = true;
-        EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/"; // CDN oficial
-        EJS_gameUrl = "puzzledeharvestmoon.nds"; // Caminho relativo à ROM no repositório
-
-    // --- ADICIONE AS LINHAS ABAIXO ---
-        EJS_disablePointerLock = true;  // Desativa a função de "prender" o mouse
-        EJS_pauseOnBlur = false;       // Evita que o jogo pause quando a aba perde o foco
-    // --------------------------------
+        EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+        EJS_gameUrl = "puzzledeharvestmoon.nds";
+        EJS_disablePointerLock = true;
+        EJS_pauseOnBlur = false;
+        
+        // Força a desativação do pointer lock após o emulador carregar
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                // Remove qualquer evento de pointer lock
+                const canvases = document.querySelectorAll('canvas');
+                canvases.forEach(canvas => {
+                    canvas.removeEventListener('click', () => {});
+                    canvas.removeEventListener('mousedown', () => {});
+                    canvas.style.pointerEvents = 'auto';
+                });
+                
+                // Desativa o pointer lock no objeto do emulador se existir
+                if (window.EJS_emulator) {
+                    window.EJS_emulator.disablePointerLock = true;
+                }
+            }, 2000);
+        });
+        
+        // Intercepta e bloqueia requisições de pointer lock
+        document.addEventListener('pointerlockchange', function(e) {
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+            }
+        }, false);
+        
+        document.addEventListener('pointerlockerror', function(e) {
+            console.log('Pointer lock bloqueado');
+        }, false);
     </script>
     <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
 </body>

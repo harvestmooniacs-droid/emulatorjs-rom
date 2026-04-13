@@ -4,7 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Emulador NDS</title>
     <style>
-        body { margin: 0; padding: 0; background: #000; }
+        body { margin: 0; padding: 0; background: transparent; }
         #game { width: 100vw; height: 100vh; }
     </style>
 </head>
@@ -14,7 +14,7 @@
         EJS_player = "#game";
         EJS_core = "nds";  // Núcleo mais leve e sem dependência de melonds-wasm.data
         EJS_gameName = "Puzzle de Harvest Moon";
-        EJS_color = "#55aa76";
+        EJS_color = "transparent";
         EJS_startOnLoaded = true;
         EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/"; // CDN oficial
         EJS_gameUrl = "puzzledeharvestmoon.nds"; // Caminho relativo à ROM no repositório

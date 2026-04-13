@@ -1,29 +1,44 @@
-<html>
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Emulador NDS</title>
     <style>
-        body { margin: 0; padding: 0; background: transparent; }
-        #game { width: 100vw; height: 100vh; }
-
-        #game canvas {
-            pointer-events: none !important;
+        /* Reset completo e fundo transparente */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        /* Quando o mouse está sobre o canvas com botão pressionado, permite interação */
-        #game canvas:active {
-            pointer-events: auto !important;
-        }
-
-        /* Força o canvas do emulador a ficar com fundo transparente 
-           e remove qualquer borda/padding que cause barras laterais escuras */
-        canvas.emulator-js-canvas {
+        html, body {
+            width: 100%;
+            height: 100%;
             background: transparent !important;
-            box-shadow: none !important;
+            overflow: hidden;
         }
         
-        /* Esconde completamente a barra de menus (todos os botões e opções) */
+        /* Container onde o emulador vai viver */
+        #emulator-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: transparent !important;
+        }
+        
+        /* Garante que o canvas do jogo seja interativo e transparente */
+        canvas {
+            background: transparent !important;
+            pointer-events: auto !important;  /* Restaura o clique */
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        /* ============================================= */
+        /* Esconde TODOS os elementos da interface de forma agressiva */
+        /* ============================================= */
         .ejs-menu,
         .ejs-control-bar,
         .ejs-settings-menu,
@@ -32,109 +47,189 @@
         [class*="ejs-menu"],
         [class*="control-bar"],
         .menu-container,
-        .controls-container {
+        .controls-container,
+        .ejs-top-bar,
+        .ejs-bottom-bar,
+        .ejs-status,
+        .ejs-button-group,
+        .ejs-save-load,
+        .ejs-gamepad-popup,
+        .ejs-mobile-menu,
+        .ejs-settings-button,
+        .ejs-fullscreen-button,
+        .ejs-save-state,
+        .ejs-load-state,
+        .ejs-fast-forward,
+        .ejs-rewind,
+        .ejs-mute-button,
+        .ejs-quick-save,
+        .ejs-quick-load,
+        .ejs-restart-button,
+        .ejs-pause-button,
+        .ejs-play-button,
+        .ejs-volume-slider {
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
             pointer-events: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            position: absolute !important;
+            top: -9999px !important;
+            left: -9999px !important;
         }
         
-        /* Remove qualquer overlay de carregamento ou splash screen opaca */
+        /* Impede que qualquer elemento reapareça no hover */
+        .ejs-menu:hover,
+        .ejs-control-bar:hover,
+        [class*="ejs-menu"]:hover,
+        [class*="control-bar"]:hover {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+        
+        /* Remove qualquer overlay ou splash screen opaca */
         .ejs-splash,
-        .ejs-loading {
+        .ejs-loading,
+        .ejs-spinner {
+            background: transparent !important;
+            display: none !important;
+        }
+        
+        /* Container principal transparente */
+        .emulator-js,
+        #emulator,
+        .emulator-container,
+        .ejs-main {
             background: transparent !important;
         }
         
-        /* Ajusta o container principal para não ter cor de fundo */
-        .emulator-js,
-        #emulator,
-        .emulator-container {
+        /* Garante que o body não tenha cor de fundo residual */
+        body {
             background: transparent !important;
         }
     </style>
 </head>
 <body>
+    <!-- Container único para o emulador -->
     <div id="emulator-container"></div>
+
     <script>
-        EJS_player = "#game";
-        EJS_core = "desmume";  // Núcleo mais leve e sem dependência de melonds-wasm.data
-        EJS_gameName = "Puzzle de Harvest Moon";
-        EJS_color = "transparent";
-        EJS_startOnLoaded = true;
-        window.EJS_pathtodata = "data/";  // aponta para a pasta data/ do seu repositório
+        // ========== CONFIGURAÇÕES DO EMULADOR ==========
+        // Caminho para a pasta data/ (local)
+        window.EJS_pathtodata = "data/";
+        
+        // ROM
         window.EJS_gameUrl = "puzzledeharvestmoon.nds";
+        
+        // Core correto para NDS (remove "desmume" duplicado)
         window.EJS_core = "nds";
         
-        // Força a proporção 4:3 para o NDS (remove o widescreen)
+        // Nome do jogo (opcional)
+        window.EJS_gameName = "Puzzle de Harvest Moon";
+        
+        // Força a proporção 4:3 (remove widescreen)
         window.EJS_defaultOptions = {
             'aspectRatio': '4:3'
         };
         
-        // Tenta esconder o menu via configuração (se disponível)
-        window.EJS_hideMenu = true;       // algumas versões suportam
-        window.EJS_hideSettings = true;   // esconde botão de configurações
-        window.EJS_disableContextMenu = true; // desabilita menu ao clicar com botão direito
+        // Remove o menu de configurações e botões
+        window.EJS_hideMenu = true;           // Esconde menu principal
+        window.EJS_hideSettings = true;       // Esconde botão de configurações
+        window.EJS_disableContextMenu = true; // Desabilita menu de contexto (botão direito)
         
-        // Cor de fundo transparente (se a opção existir)
-        window.EJS_backgroundColor = 'transparent';
+        // Fundo transparente (se a API suportar)
+        window.EJS_backgroundColor = "transparent";
         
-        // Carrega o loader.js (agora local)
+        // IMPORTANTE: Não defina EJS_player, deixe o EmulatorJS criar seu próprio container dentro de #emulator-container
+        // Se você quiser forçar um elemento específico, use o ID correto:
+        // window.EJS_player = "#emulator-container";
+        
+        // Opcional: iniciar automaticamente
+        window.EJS_startOnLoaded = true;
+        
+        // Cor do tema (opcional, apenas estético)
+        window.EJS_color = "#000000"; // Preto, mas como está transparente não fará diferença
     </script>
+    
+    <!-- Carrega o loader local -->
     <script src="data/loader.js"></script>
     
     <script>
-        // Script adicional para garantir que, após o emulador carregar,
-        // qualquer elemento remanescente seja ocultado e o fundo fique transparente.
-        function aplicarPersonalizacoes() {
-            // Seleciona todos os possíveis containers de menu e os remove
-            const seletoresParaOcultar = [
-                '.ejs-menu', '.ejs-control-bar', '.ejs-settings-menu',
-                '.ejs-context-menu', '.emulator-js-menu', '.menu-container',
-                '.controls-container', '.ejs-top-bar', '.ejs-bottom-bar',
-                '.ejs-status', '.ejs-button-group', '.ejs-save-load'
+        // ========== SCRIPT DE PÓS-CARREGAMENTO PARA GARANTIR PERSONALIZAÇÃO ==========
+        function forcarTransparenciaEOcultarMenus() {
+            // 1. Canvas: fundo transparente + pointer events ativos
+            const canvas = document.querySelector('canvas');
+            if (canvas) {
+                canvas.style.setProperty('background', 'transparent', 'important');
+                canvas.style.setProperty('pointer-events', 'auto', 'important');
+            }
+            
+            // 2. Todos os elementos que podem ser menus (incluindo os que o EmulatorJS adiciona depois)
+            const seletores = [
+                '.ejs-menu', '.ejs-control-bar', '.ejs-settings-menu', '.ejs-context-menu',
+                '.emulator-js-menu', '[class*="ejs-menu"]', '[class*="control-bar"]',
+                '.menu-container', '.controls-container', '.ejs-top-bar', '.ejs-bottom-bar',
+                '.ejs-status', '.ejs-button-group', '.ejs-save-load', '.ejs-gamepad-popup',
+                '.ejs-mobile-menu', '.ejs-settings-button', '.ejs-fullscreen-button',
+                '.ejs-save-state', '.ejs-load-state', '.ejs-fast-forward', '.ejs-rewind',
+                '.ejs-mute-button', '.ejs-quick-save', '.ejs-quick-load', '.ejs-restart-button',
+                '.ejs-pause-button', '.ejs-play-button', '.ejs-volume-slider'
             ];
             
-            seletoresParaOcultar.forEach(sel => {
+            seletores.forEach(sel => {
                 document.querySelectorAll(sel).forEach(el => {
+                    // Remove inline styles que possam estar sobrepondo
                     el.style.display = 'none';
                     el.style.visibility = 'hidden';
                     el.style.opacity = '0';
                     el.style.pointerEvents = 'none';
+                    // Se o elemento tiver classe de hover, força
+                    el.classList.add('ejs-hidden-custom');
                 });
             });
             
-            // Força o fundo transparente no canvas e no body
-            const canvas = document.querySelector('canvas');
-            if (canvas) {
-                canvas.style.backgroundColor = 'transparent';
-                canvas.style.background = 'transparent';
-            }
+            // 3. Remove qualquer fundo de elementos pai
+            const containers = ['.emulator-js', '#emulator', '.emulator-container', '.ejs-main', '#emulator-container'];
+            containers.forEach(sel => {
+                const el = document.querySelector(sel);
+                if (el) {
+                    el.style.setProperty('background', 'transparent', 'important');
+                }
+            });
             
-            // O container principal do emulador
-            const emuDiv = document.querySelector('.emulator-js, #emulator');
-            if (emuDiv) {
-                emuDiv.style.backgroundColor = 'transparent';
-                emuDiv.style.background = 'transparent';
-            }
+            // 4. Força o body transparente novamente (por precaução)
+            document.body.style.setProperty('background', 'transparent', 'important');
+            document.documentElement.style.setProperty('background', 'transparent', 'important');
         }
         
-        // Tenta aplicar assim que o DOM estiver pronto
+        // Executa quando o DOM estiver pronto
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', aplicarPersonalizacoes);
+            document.addEventListener('DOMContentLoaded', forcarTransparenciaEOcultarMenus);
         } else {
-            aplicarPersonalizacoes();
+            forcarTransparenciaEOcultarMenus();
         }
         
-        // Também observa mudanças no DOM (pois o EmulatorJS cria elementos dinamicamente)
+        // Observa mudanças no DOM para capturar elementos adicionados dinamicamente
         const observer = new MutationObserver(() => {
-            aplicarPersonalizacoes();
+            forcarTransparenciaEOcultarMenus();
         });
-        observer.observe(document.body, { childList: true, subtree: true });
+        observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
         
-        // Quando o emulador disparar o evento de carregamento completo, reforça
+        // Quando o emulador terminar de carregar, reforça
         document.addEventListener('emulator-loaded', () => {
-            aplicarPersonalizacoes();
+            forcarTransparenciaEOcultarMenus();
         });
+        
+        // Também reforça a cada 2 segundos por 10 segundos (caso o emulador demore para criar elementos)
+        let intervalCount = 0;
+        const interval = setInterval(() => {
+            forcarTransparenciaEOcultarMenus();
+            intervalCount++;
+            if (intervalCount >= 10) clearInterval(interval);
+        }, 2000);
     </script>
 </body>
 </html>

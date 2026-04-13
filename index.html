@@ -6,6 +6,15 @@
     <style>
         body { margin: 0; padding: 0; background: transparent; }
         #game { width: 100vw; height: 100vh; }
+
+        #game canvas {
+            pointer-events: none !important;
+        }
+        
+        /* Quando o mouse está sobre o canvas com botão pressionado, permite interação */
+        #game canvas:active {
+            pointer-events: auto !important;
+        }
     </style>
 </head>
 <body>

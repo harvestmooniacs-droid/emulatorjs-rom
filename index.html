@@ -16,55 +16,125 @@
             pointer-events: auto !important;
         }
 
-        .ejs-toolbar {
+        /* Força o canvas do emulador a ficar com fundo transparente 
+           e remove qualquer borda/padding que cause barras laterais escuras */
+        canvas.emulator-js-canvas {
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+        
+        /* Esconde completamente a barra de menus (todos os botões e opções) */
+        .ejs-menu,
+        .ejs-control-bar,
+        .ejs-settings-menu,
+        .ejs-context-menu,
+        .emulator-js-menu,
+        [class*="ejs-menu"],
+        [class*="control-bar"],
+        .menu-container,
+        .controls-container {
+            display: none !important;
+            visibility: hidden !important;
             opacity: 0 !important;
             pointer-events: none !important;
+        }
+        
+        /* Remove qualquer overlay de carregamento ou splash screen opaca */
+        .ejs-splash,
+        .ejs-loading {
+            background: transparent !important;
+        }
+        
+        /* Ajusta o container principal para não ter cor de fundo */
+        .emulator-js,
+        #emulator,
+        .emulator-container {
+            background: transparent !important;
         }
     </style>
 </head>
 <body>
-    <div id="game"></div>
+    <div id="emulator-container"></div>
     <script>
         EJS_player = "#game";
         EJS_core = "desmume";  // Núcleo mais leve e sem dependência de melonds-wasm.data
         EJS_gameName = "Puzzle de Harvest Moon";
         EJS_color = "transparent";
         EJS_startOnLoaded = true;
-        EJS_pathtodata = "data/";
-        EJS_gameUrl = "puzzledeharvestmoon.nds";
-        EJS_disablePointerLock = true;
-        EJS_pauseOnBlur = false;
-        EJS_toolbar = false;
+        window.EJS_pathtodata = "data/";  // aponta para a pasta data/ do seu repositório
+        window.EJS_gameUrl = "puzzledeharvestmoon.nds";
+        window.EJS_core = "nds";
         
-        // Força a desativação do pointer lock após o emulador carregar
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                // Remove qualquer evento de pointer lock
-                const canvases = document.querySelectorAll('canvas');
-                canvases.forEach(canvas => {
-                    canvas.removeEventListener('click', () => {});
-                    canvas.removeEventListener('mousedown', () => {});
-                    canvas.style.pointerEvents = 'auto';
-                });
-                
-                // Desativa o pointer lock no objeto do emulador se existir
-                if (window.EJS_emulator) {
-                    window.EJS_emulator.disablePointerLock = true;
-                }
-            }, 2000);
-        });
+        // Força a proporção 4:3 para o NDS (remove o widescreen)
+        window.EJS_defaultOptions = {
+            'aspectRatio': '4:3'
+        };
         
-        // Intercepta e bloqueia requisições de pointer lock
-        document.addEventListener('pointerlockchange', function(e) {
-            if (document.pointerLockElement) {
-                document.exitPointerLock();
-            }
-        }, false);
+        // Tenta esconder o menu via configuração (se disponível)
+        window.EJS_hideMenu = true;       // algumas versões suportam
+        window.EJS_hideSettings = true;   // esconde botão de configurações
+        window.EJS_disableContextMenu = true; // desabilita menu ao clicar com botão direito
         
-        document.addEventListener('pointerlockerror', function(e) {
-            console.log('Pointer lock bloqueado');
-        }, false);
+        // Cor de fundo transparente (se a opção existir)
+        window.EJS_backgroundColor = 'transparent';
+        
+        // Carrega o loader.js (agora local)
     </script>
     <script src="data/loader.js"></script>
+    
+    <script>
+        // Script adicional para garantir que, após o emulador carregar,
+        // qualquer elemento remanescente seja ocultado e o fundo fique transparente.
+        function aplicarPersonalizacoes() {
+            // Seleciona todos os possíveis containers de menu e os remove
+            const seletoresParaOcultar = [
+                '.ejs-menu', '.ejs-control-bar', '.ejs-settings-menu',
+                '.ejs-context-menu', '.emulator-js-menu', '.menu-container',
+                '.controls-container', '.ejs-top-bar', '.ejs-bottom-bar',
+                '.ejs-status', '.ejs-button-group', '.ejs-save-load'
+            ];
+            
+            seletoresParaOcultar.forEach(sel => {
+                document.querySelectorAll(sel).forEach(el => {
+                    el.style.display = 'none';
+                    el.style.visibility = 'hidden';
+                    el.style.opacity = '0';
+                    el.style.pointerEvents = 'none';
+                });
+            });
+            
+            // Força o fundo transparente no canvas e no body
+            const canvas = document.querySelector('canvas');
+            if (canvas) {
+                canvas.style.backgroundColor = 'transparent';
+                canvas.style.background = 'transparent';
+            }
+            
+            // O container principal do emulador
+            const emuDiv = document.querySelector('.emulator-js, #emulator');
+            if (emuDiv) {
+                emuDiv.style.backgroundColor = 'transparent';
+                emuDiv.style.background = 'transparent';
+            }
+        }
+        
+        // Tenta aplicar assim que o DOM estiver pronto
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', aplicarPersonalizacoes);
+        } else {
+            aplicarPersonalizacoes();
+        }
+        
+        // Também observa mudanças no DOM (pois o EmulatorJS cria elementos dinamicamente)
+        const observer = new MutationObserver(() => {
+            aplicarPersonalizacoes();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        
+        // Quando o emulador disparar o evento de carregamento completo, reforça
+        document.addEventListener('emulator-loaded', () => {
+            aplicarPersonalizacoes();
+        });
+    </script>
 </body>
 </html>

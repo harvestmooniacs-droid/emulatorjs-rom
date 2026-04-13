@@ -25,13 +25,39 @@
         EJS_gameName = "Puzzle de Harvest Moon";
         EJS_color = "transparent";
         EJS_startOnLoaded = true;
-        EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/"; // CDN oficial
-        EJS_gameUrl = "puzzledeharvestmoon.nds"; // Caminho relativo à ROM no repositório
-
-    // --- ADICIONE AS LINHAS ABAIXO ---
-        EJS_disablePointerLock = true;  // Desativa a função de "prender" o mouse
-        EJS_pauseOnBlur = false;       // Evita que o jogo pause quando a aba perde o foco
-    // --------------------------------
+        EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+        EJS_gameUrl = "puzzledeharvestmoon.nds";
+        EJS_disablePointerLock = true;
+        EJS_pauseOnBlur = false;
+        
+        // Força a desativação do pointer lock após o emulador carregar
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                // Remove qualquer evento de pointer lock
+                const canvases = document.querySelectorAll('canvas');
+                canvases.forEach(canvas => {
+                    canvas.removeEventListener('click', () => {});
+                    canvas.removeEventListener('mousedown', () => {});
+                    canvas.style.pointerEvents = 'auto';
+                });
+                
+                // Desativa o pointer lock no objeto do emulador se existir
+                if (window.EJS_emulator) {
+                    window.EJS_emulator.disablePointerLock = true;
+                }
+            }, 2000);
+        });
+        
+        // Intercepta e bloqueia requisições de pointer lock
+        document.addEventListener('pointerlockchange', function(e) {
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+            }
+        }, false);
+        
+        document.addEventListener('pointerlockerror', function(e) {
+            console.log('Pointer lock bloqueado');
+        }, false);
     </script>
     <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
 </body>

@@ -1,129 +1,28 @@
-<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Emulador NDS</title>
     <style>
-        body { 
-            margin: 0; 
-            padding: 0; 
-            background: transparent;   /* ✅ fundo transparente */
-            overflow: hidden;
-            display: flex;              /* ✅ centraliza o conteúdo */
-            align-items: center;
-            justify-content: center;
-        }
-        #game { 
-            /* ✅ garante que o canvas não corte as laterais */
-            width: 100%; 
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        /* Ajuste fino para o canvas não extrapolar */
-        #game canvas {
-            pointer-events: none !important;
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;        /* ✅ mantém proporção sem cortes */
-            background: transparent !important;
-         }
-        
-        /* Quando o mouse está sobre o canvas com botão pressionado, permite interação */
-        #game canvas:active {
-            pointer-events: auto !important;
-        }
-        .ejs-menu,
-        .ejs-toolbar {
-            opacity: 0 !important;
-            pointer-events: none !important;
-        }
-        .ejs-settings,
-        .ejs-fullscreen,
-        .ejs-other-buttons {
-            display: none !important;
-        }
+        body { margin: 0; padding: 0; background: #000; }
+        #game { width: 100vw; height: 100vh; }
     </style>
 </head>
 <body>
     <div id="game"></div>
     <script>
         EJS_player = "#game";
-        EJS_core = "desmume";
+        EJS_core = "nds";  // Núcleo mais leve e sem dependência de melonds-wasm.data
         EJS_gameName = "Puzzle de Harvest Moon";
         EJS_color = "#55aa76";
         EJS_startOnLoaded = true;
-        EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
-        EJS_gameUrl = "puzzledeharvestmoon.nds";
-        EJS_disablePointerLock = true;
-        EJS_pauseOnBlur = false;
+        EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/"; // CDN oficial
+        EJS_gameUrl = "puzzledeharvestmoon.nds"; // Caminho relativo à ROM no repositório
 
-        // ✅ OCULTA OS BOTÕES DA INTERFACE PADRÃO (incluindo o de configurações)
-        // Isso impede que o menu abra acidentalmente com um clique.
-        EJS_Buttons = {
-            settings: false,       // Desabilita o botão de configurações
-            fullscreen: false,      // Opcional: mantém o de tela cheia
-            playPause: true,
-            restart: false,
-            mute: false,
-            saveState: false,
-            loadState: false,
-            screenRecord: false,
-            gamepad: false,
-            cheat: false,
-            volume: true,          // Opcional: mantém o controle de volume
-            saveSavFiles: true,
-            loadSavFiles: true,
-            quickSave: false,
-            quickLoad: false,
-            screenshot: false,
-            cacheManager: false,
-            exitEmulation: false
-        };
-        
-        // Força a desativação do pointer lock após o emulador carregar
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                const canvases = document.querySelectorAll('canvas');
-                canvases.forEach(canvas => {
-                    canvas.removeEventListener('click', () => {});
-                    canvas.removeEventListener('mousedown', () => {});
-                    canvas.style.pointerEvents = 'auto';
-                });
-                
-                if (window.EJS_emulator) {
-                    window.EJS_emulator.disablePointerLock = true;
-                }
-
-                // ✅ FORÇA O CORTE DAS LATERAIS APÓS O CARREGAMENTO COMPLETO
-                // Às vezes o emulador recria os canvases, então aplicamos novamente
-                const applyCoverToCanvases = () => {
-                    document.querySelectorAll('#game canvas').forEach(c => {
-                        c.style.objectFit = 'cover';
-                        c.style.maxWidth = '100%';
-                        c.style.maxHeight = '100%';
-                    });
-                };
-                // Aplica imediatamente e também observa mudanças futuras
-                applyCoverToCanvases();
-                const observer = new MutationObserver(applyCoverToCanvases);
-                observer.observe(document.getElementById('game'), { childList: true, subtree: true });
-            }, 2000);
-        });
-        
-        // Intercepta e bloqueia requisições de pointer lock
-        document.addEventListener('pointerlockchange', function(e) {
-            if (document.pointerLockElement) {
-                document.exitPointerLock();
-            }
-        }, false);
-        
-        document.addEventListener('pointerlockerror', function(e) {
-            console.log('Pointer lock bloqueado');
-        }, false);
+    // --- ADICIONE AS LINHAS ABAIXO ---
+        EJS_disablePointerLock = true;  // Desativa a função de "prender" o mouse
+        EJS_pauseOnBlur = false;       // Evita que o jogo pause quando a aba perde o foco
+    // --------------------------------
     </script>
     <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
 </body>
